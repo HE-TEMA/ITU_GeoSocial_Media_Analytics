@@ -1,4 +1,4 @@
-# GeoSocial Media Analytics — TEMA TFA-11
+# GeoSocial Media Analytics: TEMA TFA11
 
 This repository contains the **TFA-11 geo-social media analytics component** developed by the [GeoSocial AI](https://it-u.at/en/research/research-groups/geosocial-ai/) research group at [Interdiscplinary Transformation University (IT:U)](https://it-u.at/en/) within the [Horizon Europe project TEMA](https://tema-project.eu). The component ingests geo-referenced social media posts, runs an automated text and spatial analysis pipeline whenever a disaster alert (e.g. flood or wildfire) is received, and publishes the results as GeoJSON files to an S3-compatible object storage together with NGSI-LD metadata entities on a context broker.
 

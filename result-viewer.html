@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotspots & Social Posts Visualization</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        #control-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .form-group input[type="text"] {
+            width: calc(100% - 10px);
+            padding: 5px;
+        }
+        .form-group input[type="range"] {
+            width: 100%;
+        }
+        button {
+            width: 100%;
+            padding: 8px;
+            background: #0078A8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #005f85;
+        }
+        .slider-label {
+            font-size: 12px;
+            color: #555;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .popup-img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 5px;
+            border-radius: 4px;
+        }
+        .legend {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            line-height: 1.4;
+            font-size: 13px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.25);
+        }
+        .legend .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .legend .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border: 1px solid #999;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="control-panel">
+    <h3>Data Controls</h3>
+    
+    <div class="form-group">
+        <label for="baseUrl">Base URL:</label>
+        <input type="text" id="baseUrl" value="http://localhost:5007/tfa11" placeholder="e.g. http://localhost:5007/tfa11">
+    </div>
+    
+    <div class="form-group">
+        <button onclick="fetchData()">Load Data</button>
+    </div>
+
+    <hr>
+
+    <div class="form-group">
+        <label>Cumulative Posts (Until When):</label>
+        <input type="range" id="postsSlider" min="0" max="100" value="100" disabled oninput="updatePosts()">
+        <div class="slider-label" id="postsSliderLabel">Waiting for data...</div>
+    </div>
+
+    <div class="form-group">
+        <label>Hotspots (Specific Day):</label>
+        <input type="range" id="hotspotsSlider" min="0" max="100" value="0" disabled oninput="updateHotspots()">
+        <div class="slider-label" id="hotspotsSliderLabel">Waiting for data...</div>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Initialize map
+    const map = L.map('map').setView([40.61, 9.71], 11); // Default center roughly over the provided coordinates
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Legend for relevance colors
+    const relevanceLegend = L.control({ position: 'bottomright' });
+    relevanceLegend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'legend');
+        div.innerHTML = '<strong>Relevance</strong><br>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#1F5F1F"></span>0.0–0.1</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#4E804E"></span>0.1–0.2</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#7EA17E"></span>0.2–0.3</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#ADC2AD"></span>0.3–0.4</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#DCE3DC"></span>0.4–0.5</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#E8DFDF"></span>0.5–0.6</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#D1B6B6"></span>0.6–0.7</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#BA8D8D"></span>0.7–0.8</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#A26363"></span>0.8–0.9</div>' +
+            '<div class="legend-item"><span class="legend-color" style="background:#8B3A3A"></span>0.9–1.0</div>';
+        return div;
+    };
+    relevanceLegend.addTo(map);
+
+    // Data Storage
+    let postsData = null;
+    let hotspotsData = null;
+    let postsDates = [];
+    let hotspotsDays =[];
+    
+    // Layers
+    let postsLayerGroup = L.layerGroup().addTo(map);
+    let hotspotsLayerGroup = L.layerGroup().addTo(map);
+
+    async function fetchData() {
+        const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, '');
+        const btn = document.querySelector('button');
+        btn.innerText = "Loading...";
+
+        try {
+            const [postsRes, hotspotsRes] = await Promise.all([
+                fetch(`${baseUrl}/get-single-post-result`),
+                fetch(`${baseUrl}/get-hotspot-result`)
+            ]);
+
+            postsData = await postsRes.json();
+            hotspotsData = await hotspotsRes.json();
+
+            processData();
+            
+            btn.innerText = "Data Loaded Successfully!";
+            setTimeout(() => btn.innerText = "Reload Data", 3000);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            alert("Failed to fetch data. Check console for details or verify your Base URL and CORS settings.");
+            btn.innerText = "Load Data";
+        }
+    }
+
+    function processData() {
+        // --- Process Posts (Extract Timestamps) ---
+        if (postsData && postsData.features.length > 0) {
+            // Sort posts by date
+            postsData.features.sort((a, b) => new Date(a.properties.date) - new Date(b.properties.date));
+            postsDates = postsData.features.map(f => new Date(f.properties.date).getTime());
+            
+            const pSlider = document.getElementById('postsSlider');
+            pSlider.disabled = false;
+            pSlider.min = postsDates[0];
+            pSlider.max = postsDates[postsDates.length - 1];
+            pSlider.value = pSlider.max;
+            
+            updatePosts();
+        }
+
+        // --- Process Hotspots (Extract Unique Days) ---
+        if (hotspotsData && hotspotsData.features.length > 0) {
+            // Extract unique dates and sort them
+            const uniqueDays = new Set(hotspotsData.features.map(f => f.properties.date));
+            hotspotsDays = Array.from(uniqueDays).sort((a, b) => new Date(a) - new Date(b));
+            
+            const hSlider = document.getElementById('hotspotsSlider');
+            hSlider.disabled = false;
+            hSlider.min = 0;
+            hSlider.max = hotspotsDays.length - 1;
+            hSlider.value = 0;
+            
+            updateHotspots();
+        }
+
+        // Auto-adjust map bounds to fit both sets of data
+        const allBounds = L.latLngBounds();
+        if (postsLayerGroup.getLayers().length > 0) allBounds.extend(L.featureGroup(postsLayerGroup.getLayers()).getBounds());
+        if (hotspotsLayerGroup.getLayers().length > 0) allBounds.extend(L.featureGroup(hotspotsLayerGroup.getLayers()).getBounds());
+        if (allBounds.isValid()) map.fitBounds(allBounds, { padding:[20, 20] });
+    }
+
+    function getRelevanceColor(score) {
+        if (score === null || score === undefined || isNaN(score)) return '#999999';
+        if (score < 0.1) return '#1F5F1F';
+        if (score < 0.2) return '#4E804E';
+        if (score < 0.3) return '#7EA17E';
+        if (score < 0.4) return '#ADC2AD';
+        if (score < 0.5) return '#DCE3DC';
+        if (score < 0.6) return '#E8DFDF';
+        if (score < 0.7) return '#D1B6B6';
+        if (score < 0.8) return '#BA8D8D';
+        if (score < 0.9) return '#A26363';
+        return '#8B3A3A';
+    }
+
+    function updatePosts() {
+        if (!postsData) return;
+        
+        const currentTimestamp = parseInt(document.getElementById('postsSlider').value);
+        document.getElementById('postsSliderLabel').innerText = `Displaying up to: ${new Date(currentTimestamp).toLocaleString()}`;
+
+        postsLayerGroup.clearLayers();
+
+        // Filter cumulative posts
+        const filteredFeatures = postsData.features.filter(f => new Date(f.properties.date).getTime() <= currentTimestamp);
+
+        const geoJsonLayer = L.geoJSON(filteredFeatures, {
+            pointToLayer: function (feature, latlng) {
+                const relevance = feature.properties.relevance_score;
+                return L.circleMarker(latlng, {
+                    radius: 6,
+                    fillColor: getRelevanceColor(relevance),
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+            },
+            onEachFeature: function (feature, layer) {
+                const p = feature.properties;
+                let popupContent = `
+                    <div style="max-width: 250px;">
+                        <strong>Date:</strong> ${new Date(p.date).toLocaleString()}<br>
+                        <strong>Emotion:</strong> ${p.emotion_label || 'N/A'} (${Math.round(p.emotion_label_probability*100)}%)<br>
+                        <strong>Topic:</strong> ${p.topic_label}<br>
+                        <strong>Relevance:</strong> ${Math.round(p.relevance_score*100)}%<br>
+                        <hr>
+                        <em>${p.text}</em>
+                `;
+                if (p.photo_url) {
+                    popupContent += `<br><img src="${p.photo_url}" class="popup-img" alt="Post Photo">`;
+                }
+                popupContent += `</div>`;
+                
+                layer.bindPopup(popupContent);
+                layer.bindTooltip("Click for details");
+            }
+        });
+
+        postsLayerGroup.addLayer(geoJsonLayer);
+    }
+
+    function updateHotspots() {
+        if (!hotspotsData || hotspotsDays.length === 0) return;
+
+        const dayIndex = parseInt(document.getElementById('hotspotsSlider').value);
+        const selectedDay = hotspotsDays[dayIndex];
+        
+        document.getElementById('hotspotsSliderLabel').innerText = `Date: ${new Date(selectedDay).toLocaleDateString()}`;
+
+        hotspotsLayerGroup.clearLayers();
+
+        // Filter discrete day
+        const filteredFeatures = hotspotsData.features.filter(f => f.properties.date === selectedDay);
+
+        const geoJsonLayer = L.geoJSON(filteredFeatures, {
+            style: function (feature) {
+                const count = feature.properties.count_related;
+                // Styling based on count: if > 0 highlight red, else semi-transparent blue
+                return {
+                    fillColor: count > 0 ? '#e74c3c' : '#3498db',
+                    color: count > 0 ? '#c0392b' : '#2980b9',
+                    weight: count > 0 ? 2 : 1,
+                    fillOpacity: count > 0 ? 0.6 : 0.2
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                const p = feature.properties;
+                const popupContent = `
+                    <div style="max-width: 200px;">
+                        <strong>H3 Index:</strong> ${p.h3}<br>
+                        <strong>Date:</strong> ${new Date(p.date).toLocaleDateString()}<br>
+                        <strong>Count:</strong> ${p.count}<br>
+                        <strong>Count Related:</strong> ${p.count_related !== null ? p.count_related : 'N/A'}<br>
+                        <strong>Z-Score:</strong> ${p.z_score !== null ? p.z_score.toFixed(3) : 'N/A'}<br>
+                        <strong>P-Value:</strong> ${p.p_value !== null ? p.p_value : 'N/A'}
+                    </div>
+                `;
+                layer.bindPopup(popupContent);
+                layer.bindTooltip(`Count: ${p.count}`);
+            }
+        });
+
+        hotspotsLayerGroup.addLayer(geoJsonLayer);
+    }
+</script>
+
+</body>
+</html>

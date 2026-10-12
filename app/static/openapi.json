@@ -1,0 +1,1168 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0",
+    "title": "TEMA: TFA-11 PLUS Component ",
+    "description": "API documentation for TEMA: TFA-11 PLUS Component Flask application. ",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "basePath": "/tfa11",
+  "schema": [
+    "https"
+  ],
+  "paths": {
+    "/upload": {
+      "post": {
+        "tags": ["Object Storage"],
+        "summary": "Upload files to MinIO object storage for the TEMA project.",
+        "description": "Good for testing uploading the output files to the MinIO object storage. Files are taken from the /data/export_data folder and are given unique identifiers before being uploaded to the MinIO object storage. Keep in mind that the main code has to be run first.",
+        
+        "responses": {
+          "200": {
+            "description": "File(s) uploaded successfully",
+            "content": {
+              "application/json":{}
+            }
+          },
+          "404": {
+            "description": "File(s) not found."                      
+          }
+        }
+      }
+    },
+    "/create-entities": {
+      "post": {
+        "tags": ["Context Broker"],
+        "summary": "Create new result entities for TEMA (HotspotResult & SinglepostResult)",
+        "description": "Good for testing the creation of NGSI-LD entities. Creates two NGSI-LD entities and sends them to the Orion Context Broker.",
+        
+        "responses": {
+          "200": {
+            "description": "Entities created successfully",
+            "content": {
+              "application/json":{
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "created_entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "example": "HotspotResult" },
+                          "id": { "type": "string", "example": "urn:ngsi-ld:HotspotResult:001" },
+                          "message": { "type": "string", "example": "NGSI-LD entity created successfully." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json":{
+                "schema": {
+                  "type": "object",
+                  "properties":{
+                    "error": {"type": "string", "example": "Failed to create NGSI-LD entity"},
+                    "type": { "type": "string", "example": "HotspotResult" },
+                    "id": { "type": "string", "example": "urn:ngsi-ld:HotspotResult:001" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-entity": {
+      "get": {
+        "tags": ["Context Broker"],
+        "summary": "Get an entity",
+        "description": "Good for testing the retrieval of an NGSI-LD entity by its ID. Provide a valid entity ID to get the corresponding entity and its information. ",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Entity-ID",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entity retrieved successfully"
+          },
+          "404": {
+            "description": "Entity not found"
+          }
+        }
+      }
+    },
+    "/download": {
+      "get": {
+        "tags": ["Object Storage"],
+        "summary": "Download a file from MinIO Object Storage.",
+        "description": "To download a specific file from the MinIO object storage: Provide a valid MinIO URL. The file can be located in the /download folder of the docker container. ",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Minio_URL",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File downloaded successfully"
+          },
+          "400": {
+            "description": "Invalid MinIO URL"
+          }
+        }
+      }
+    },
+    "/delete-file": {
+      "get": {
+        "tags": ["Object Storage"],
+        "summary": "Delete a file from MinIO Object Storage.",
+        "description": "To delete a specific file from the MinIO object storage: Provide a valid MinIO URL. ",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Minio_URL",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully"
+          },
+          "400": {
+            "description": "Invalid MinIO URL"
+          }
+        }
+      }
+    },
+    "/delete-entity": {
+      "get": {
+        "tags": ["Context Broker"],
+        "summary": "Delete a file from Orion Context Broker.",
+        "description": "To delete a specific file from the MinIO object storage: Provide a valid MinIO URL. The corresponding file will be deleted from the object storage.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Entity-ID",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Entity deleted successfully.",
+            "content":{
+              "application/json":{
+                "schema": {
+                  "type": "object",
+                  "properties":{
+                    "message": {"type": "string", "example": "Successfully deleted entity."},
+                    "type": { "type": "string", "example": "SinglePostResult" },
+                    "id": { "type": "string", "example": "urn:ngsi-ld:SinglePostResult:001" }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Entity deleted successfully.",
+            "content":{
+              "application/json":{
+                "schema": {
+                  "type": "object",
+                  "properties":{
+                    "message": {"type": "string", "example": "Successfully deleted entity."},
+                    "type": { "type": "string", "example": "SinglePostResult" },
+                    "id": { "type": "string", "example": "urn:ngsi-ld:SinglePostResult:001" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request to Orion."
+          },
+          "401": {
+            "description": "Unauthorized request to Orion."
+          },
+          "404": {
+            "description": "Resource not found on Orion."
+          },
+          "500": {
+            "description": "Something went wrong."
+          }
+        }
+      }
+    },
+    
+    "/update-entity": {
+      "get": {
+        "tags": ["Context Broker"],
+        "summary": "Update the title or the description of a Orion entity.",
+        "description": "To update the title or the description of  a sepcific entity, enter a valid entity ID and its new title and description. This is for testing purposes, can be extended. ",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Entity-ID",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "Title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "Description",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Entity updated successfully. Data sent to Orion.",
+            "content":{
+              "application/json":{
+                "schema": {
+                  "type": "object",
+                  "properties":{
+                    "message": {"type": "string", "example": "Successfully updated entity."},
+                    "type": { "type": "string", "example": "SinglePostResult" },
+                    "id": { "type": "string", "example": "urn:ngsi-ld:SinglePostResult:001" }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Entity updated successfully. Data sent to Orion.",
+            "content":{
+              "application/json":{
+                "schema": {
+                  "type": "object",
+                  "properties":{
+                    "message": {"type": "string", "example": "Successfully updated entity."},
+                    "type": { "type": "string", "example": "SinglePostResult" },
+                    "id": { "type": "string", "example": "urn:ngsi-ld:SinglePostResult:001" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request to Orion."
+          },
+          "401": {
+            "description": "Unauthorized request to Orion."
+          },
+          "404": {
+            "description": "Resource not found on Orion."
+          },
+          "500": {
+            "description": "Something went wrong."
+          }
+        }
+      }
+    },
+    "/test-workflow": {
+      "get": {
+        "tags": ["Workflow"],
+        "summary": "Execute the main script (intended for testing purposes)",
+        "description": "Run the main.py script, which creates two new output files in the output folder. ",
+        "parameters": [
+          {
+            "name": "ner_model",
+            "in": "query",
+            "description": "Choose a language model:",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                " de_core_news_lg",
+                " xx_ent_wiki_sm"
+              ],
+              "default": " xx_ent_wiki_sm"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Main script executed successfully",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Error running main script",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kill-process": {
+      "post": {
+        "tags": ["Process Management"],
+        "summary": "Terminate a process by PID",
+        "description": "Kill a process based on its PID. This endpoint attempts to gracefully terminate the specified process and its child processes. If graceful termination fails, it will forcefully kill them.",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "query",
+            "description": "The process ID to be terminated.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1234
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Process terminated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Result": {
+                      "type": "string",
+                      "example": "Process with PID 1234 terminated."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No process with the specified PID exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error terminating process",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/retrieve-data": {
+      "get": {
+        "tags": ["Access Data"],
+        "summary": "Access data from Google Drive.",
+        "description": "Retrieves data from Google Drive and integrates it. ",
+        "responses": {
+          "200": {
+            "description": "Data creation successful. Database accessed.",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Error creating data file from database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload-input": {
+      "post": {
+        "tags": ["File Upload"],
+        "summary": "Upload multiple files",
+        "description": "Uploads multiple files to the server and saves them to the folder specified by Config.INPUT_PATH.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "name": "files",
+            "in": "formData",
+            "description": "Files to upload",
+            "required": true,
+            "type": "file",
+            "allowMultiple": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Files successfully uploaded",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Files successfully uploaded"
+                },
+                "filenames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": ["twitter_data.csv", "reddit_data.csv"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error in file upload",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/logs": {
+      "get": {
+        "tags": ["Logging"],
+        "summary": "Receive the last lines of the log",
+        "description": "Good for retrieving the last lines of the log when not being able to access the component.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lines",
+            "type": "string",
+            "default": "10",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Log received successfully"
+          },
+          "400": {
+            "description": "Log could not be retrieved"
+          },
+          "404": {
+            "description": "Log file not found"
+          }
+        }
+      }
+    },
+    "/get-single-post-result": {
+      "get": {
+        "tags": ["Data"],
+        "summary": "Retrieve SinglePostResult GeoJSON",
+        "description": "Returns the SinglePostResult GeoJSON file generated by the component. The file is returned as a downloadable attachment.",
+        "responses": {
+          "200": {
+            "description": "SinglePostResult GeoJSON file retrieved successfully",
+            "content": {
+              "application/geo+json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SinglePostResult file not found"
+          },
+          "500": {
+            "description": "Internal server error while retrieving the file"
+          }
+        }
+      }
+    },
+
+    "/get-hotspot-result": {
+      "get": {
+        "tags": ["Data"],
+        "summary": "Retrieve HotspotResult GeoJSON",
+        "description": "Returns the HotspotResult GeoJSON file generated by the component. The file is returned as a downloadable attachment.",
+        "responses": {
+          "200": {
+            "description": "HotspotResult GeoJSON file retrieved successfully",
+            "content": {
+              "application/geo+json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HotspotResult file not found"
+          },
+          "500": {
+            "description": "Internal server error while retrieving the file"
+          }
+        }
+      }
+    },
+    "/toggle-live-mode": {
+      "post": {
+        "tags": ["Workflow"],
+        "summary": "Toggle live mode of the component",
+        "description": "If live mode is true, then no future data can be used. Otherwise, data from the future will be included in the analysis.",
+        "responses": {
+          "200": {
+            "description": "Live mode toggled successfully"
+          },
+          "400": {
+            "description": "Live mode could not be toggled"
+          }
+        }
+      }
+    },
+    "/notify": {
+      "post": {
+        "tags": ["Workflow"],
+        "summary": "Processes a notification payload.",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "notification",
+            "description": "Notification payload containing alert details.",
+            "schema": {
+              "type": "object",
+              "required": [
+                "data",
+                "id",
+                "notifiedAt",
+                "subscriptionId",
+                "type"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "area",
+                      "bm_id"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "urn:ngsi-ld:Alert:v4test003"
+                      },
+                      "type": {
+                        "type": "string",
+                        "example": "Alert"
+                      },
+                      "area": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "GeoProperty"
+                          },
+                          "value": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "Polygon"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "example": [
+                                  [
+                                    [
+                                      8.629761,
+                                      40.181759
+                                    ],
+                                    [
+                                      8.702888,
+                                      40.194348
+                                    ],
+                                    [
+                                      8.736877,
+                                      40.14004
+                                    ],
+                                    [
+                                      8.651047,
+                                      40.098559
+                                    ],
+                                    [
+                                      8.570709,
+                                      40.130591
+                                    ],
+                                    [
+                                      8.598862,
+                                      40.171004
+                                    ],
+                                    [
+                                      8.629761,
+                                      40.181759
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "areaDesc": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "TEMA Pilot exercise"
+                          }
+                        }
+                      },
+                      "bm_id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "009471ec7acdaa70a874bfba703d300d"
+                          }
+                        }
+                      },
+                      "category": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Safety"
+                          }
+                        }
+                      },
+                      "certainty": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Observed"
+                          }
+                        }
+                      },
+                      "effective": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2024-07-28T09:40:39.034Z"
+                          }
+                        }
+                      },
+                      "event": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Fire"
+                          }
+                        }
+                      },
+                      "expires": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2026-01-31T09:40:39.034Z"
+                          }
+                        }
+                      },
+                      "ignitionPoints": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "GeoProperty"
+                          },
+                          "value": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                },
+                                "example": [
+                                  8.647209,
+                                  40.12936
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "msgType": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Alert"
+                          }
+                        }
+                      },
+                      "sender": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "alert@tema-project.eu"
+                          }
+                        }
+                      },
+                      "sent": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2024-07-28T09:40:39.034Z"
+                          }
+                        }
+                      },
+                      "severity": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Severe"
+                          }
+                        }
+                      },
+                      "urgency": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Immediate"
+                          }
+                        }
+                      },
+                      "status": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Exercise"
+                          }
+                        }
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "GeoProperty"
+                          },
+                          "value": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "Polygon"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "example": [
+                                  [
+                                    [
+                                      8.629761,
+                                      40.181759
+                                    ],
+                                    [
+                                      8.702888,
+                                      40.194348
+                                    ],
+                                    [
+                                      8.736877,
+                                      40.14004
+                                    ],
+                                    [
+                                      8.651047,
+                                      40.098559
+                                    ],
+                                    [
+                                      8.570709,
+                                      40.130591
+                                    ],
+                                    [
+                                      8.598862,
+                                      40.171004
+                                    ],
+                                    [
+                                      8.629761,
+                                      40.181759
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "Property"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "Private"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "id": {
+                  "type": "string",
+                  "example": "urn:ngsi-ld:Notification:bc615d2c-8640-11ef-8cb8-0a580a801e8b"
+                },
+                "notifiedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-10-09T13:16:46.672Z"
+                },
+                "subscriptionId": {
+                  "type": "string",
+                  "example": "urn:ngsi-ld:Subscription:a171422a-8640-11ef-9e94-0a580a801e8b"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "Notification"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification received successfully."
+          },
+          "500": {
+            "description": "Error in processing notification payload."
+          }
+        }
+      }
+    },
+    "/clear-alerts": {
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Clear all alerts from the database",
+        "description": "Deletes all entries in the alerts table and returns the number of alerts deleted.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Alerts cleared successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "type": "string",
+                  "example": "Cleared 15 alerts from the database."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error clearing alerts",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Failed to clear alerts."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscribe_to_alert": {
+      "post": {
+        "tags": ["Subscription"],
+        "summary": "Subscribes to Orion Context Broker notifications.",
+        "description": "This endpoint creates a subscription to receive alerts from the Orion Context Broker. It sets up a subscription using the given partner and broker information and configures a notification callback URL.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "callback_url",
+            "description": "Optional override for the default callback URL.",
+            "example": "https://example.com/tfa11/notify",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Subscription successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Subscription successful."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No content response from Orion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "No content response from Orion."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request to Orion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Bad request to Orion."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request to Orion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized request to Orion."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found on Orion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Resource not found on Orion."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Subscription already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Subscription already exists."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error while subscribing to Orion notifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error while subscribing to Orion notifications: [error_message]"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected response from Orion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unexpected response from Orion."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+"components":{
+"schemas":{
+"Entity":{
+  "type": "object",
+  "properties":{
+    "type": {"type": "string", "example": "SinglepostResult"},
+    "title": {"type": "string", "example": "Title"},
+    "description": {"type": "string", "example": "Description"},
+    "bucket": {"type": "string", "example": "Bucket"},
+    "minio_url": {"type": "string", "example": "URL"}
+  }
+},
+"ErrorResponse": {
+"type": "object",
+"properties": {
+"error": { "type": "string", "example": "An error occurred" }
+}
+}
+}
+}
+}
